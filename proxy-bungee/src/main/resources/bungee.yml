@@ -1,0 +1,5 @@
+name: ServerBackup-BungeeCord
+version: ${project.version}
+main: com.serverbackup.bungee.ServerBackupBungee
+description: Network backup coordinator for BungeeCord
+author: ServerBackup Team

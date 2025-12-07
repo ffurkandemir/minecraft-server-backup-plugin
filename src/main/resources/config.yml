@@ -116,13 +116,15 @@ integrations:
   # BungeeCord/Velocity network mode
   network:
     enabled: false
-    mode: "velocity"  # "bungee" or "velocity"
-    # Network backup coordinator
+    mode: "bungee"  # "bungee" or "velocity"
+    # Network backup settings (coordinator on proxy, listener on backend)
     coordinator:
-      # Is this server the coordinator? (usually proxy)
-      is-coordinator: false
-      # Channel name for plugin messaging
-      channel: "serverbackup:network"
+      sequential: true  # Execute backups one server at a time (false = parallel)
+      delay-between-servers: 5  # Seconds to wait between sequential backups
+      timeout: 300  # Seconds before backup operation times out (5 minutes)
+    channels:
+      request: 'serverbackup:request'
+      response: 'serverbackup:response'
       
   # Discord webhooks for notifications
   discord:

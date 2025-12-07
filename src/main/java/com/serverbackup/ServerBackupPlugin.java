@@ -9,6 +9,7 @@ import com.serverbackup.integrations.coreprotect.CoreProtectIntegration;
 import com.serverbackup.integrations.coreprotect.SmartRollbackCommand;
 import com.serverbackup.integrations.luckperms.LuckPermsIntegration;
 import com.serverbackup.integrations.placeholderapi.ServerBackupExpansion;
+import com.serverbackup.network.NetworkBackupListener;
 import com.serverbackup.service.BackupService;
 import com.serverbackup.service.BackupAPIImpl;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -23,6 +24,7 @@ public class ServerBackupPlugin extends JavaPlugin {
     private CoreProtectIntegration coreProtectIntegration;
     private LuckPermsIntegration luckPermsIntegration;
     private ServerBackupExpansion placeholderExpansion;
+    private NetworkBackupListener networkListener;
     private int autoBackupTaskId = -1;
     
     @Override
@@ -81,6 +83,11 @@ public class ServerBackupPlugin extends JavaPlugin {
             placeholderExpansion.unregister();
         }
         
+        // Unregister network listener
+        if (networkListener != null) {
+            networkListener.unregister();
+        }
+        
         getLogger().info("ServerBackupPlugin has been disabled!");
     }
     
@@ -134,6 +141,15 @@ public class ServerBackupPlugin extends JavaPlugin {
             } else {
                 getLogger().warning("PlaceholderAPI not found! Expansion disabled.");
             }
+        }
+        
+        // Network Integration (BungeeCord/Velocity)
+        if (getConfig().getBoolean("integrations.network.enabled", false)) {
+            networkListener = new NetworkBackupListener(this);
+            networkListener.register();
+            String mode = getConfig().getString("integrations.network.mode", "bungee");
+            getLogger().info("Network mode enabled: " + mode.toUpperCase());
+            getLogger().info("  Backend listener ready for proxy commands");
         }
     }
     
