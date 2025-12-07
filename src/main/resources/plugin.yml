@@ -1,10 +1,11 @@
 name: ServerBackupPlugin
-version: '1.0.0'
+version: '2.0.0'
 main: com.serverbackup.ServerBackupPlugin
 api-version: '1.21'
-author: YourName
-description: A plugin to create backups of your Minecraft server
-website: https://github.com/yourusername/server-backup-plugin
+author: ffurkandemir
+description: Advanced backup system with integrations (CoreProtect, WorldGuard, PlaceholderAPI, etc.)
+website: https://github.com/ffurkandemir/minecraft-server-backup-plugin
+softdepend: [CoreProtect, WorldGuard, LuckPerms, PlaceholderAPI, Vault]
 
 commands:
   backup:
@@ -27,6 +28,11 @@ commands:
     usage: /backupdelete <backup-name>
     permission: serverbackup.delete
     aliases: [deletebackup]
+  smartrollback:
+    description: Smart rollback with CoreProtect integration
+    usage: /smartrollback <time> [user] [radius]
+    permission: serverbackup.smartrollback
+    aliases: [sr, srollback]
 
 permissions:
   serverbackup.*:
@@ -36,6 +42,7 @@ permissions:
       serverbackup.list: true
       serverbackup.restore: true
       serverbackup.delete: true
+      serverbackup.smartrollback: true
   serverbackup.backup:
     description: Allows creating backups
     default: op
@@ -47,4 +54,7 @@ permissions:
     default: op
   serverbackup.delete:
     description: Allows deleting backups
+    default: op
+  serverbackup.smartrollback:
+    description: Use smart rollback with CoreProtect
     default: op

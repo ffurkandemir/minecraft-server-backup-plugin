@@ -5,6 +5,10 @@ import com.serverbackup.commands.BackupCommand;
 import com.serverbackup.commands.BackupDeleteCommand;
 import com.serverbackup.commands.BackupListCommand;
 import com.serverbackup.commands.BackupRestoreCommand;
+import com.serverbackup.integrations.coreprotect.CoreProtectIntegration;
+import com.serverbackup.integrations.coreprotect.SmartRollbackCommand;
+import com.serverbackup.integrations.luckperms.LuckPermsIntegration;
+import com.serverbackup.integrations.placeholderapi.ServerBackupExpansion;
 import com.serverbackup.service.BackupService;
 import com.serverbackup.service.BackupAPIImpl;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -16,6 +20,9 @@ public class ServerBackupPlugin extends JavaPlugin {
     private static ServerBackupPlugin instance;
     private BackupService backupService;
     private BackupAPIImpl backupAPI;
+    private CoreProtectIntegration coreProtectIntegration;
+    private LuckPermsIntegration luckPermsIntegration;
+    private ServerBackupExpansion placeholderExpansion;
     private int autoBackupTaskId = -1;
     
     @Override
@@ -43,6 +50,9 @@ public class ServerBackupPlugin extends JavaPlugin {
             getLogger().info("Public API disabled");
         }
         
+        // Initialize integrations
+        initializeIntegrations();
+        
         // Register commands
         registerCommands();
         
@@ -66,6 +76,11 @@ public class ServerBackupPlugin extends JavaPlugin {
             getServer().getScheduler().cancelTask(autoBackupTaskId);
         }
         
+        // Unregister PlaceholderAPI expansion
+        if (placeholderExpansion != null) {
+            placeholderExpansion.unregister();
+        }
+        
         getLogger().info("ServerBackupPlugin has been disabled!");
     }
     
@@ -82,6 +97,44 @@ public class ServerBackupPlugin extends JavaPlugin {
         
         getCommand("backupdelete").setExecutor(new BackupDeleteCommand(this, backupService));
         getCommand("backupdelete").setTabCompleter(tabCompleter);
+        
+        // Register integration commands
+        if (coreProtectIntegration != null && coreProtectIntegration.isEnabled()) {
+            getCommand("smartrollback").setExecutor(new SmartRollbackCommand(this, coreProtectIntegration));
+        }
+    }
+    
+    private void initializeIntegrations() {
+        // CoreProtect Integration
+        coreProtectIntegration = new CoreProtectIntegration(this);
+        if (getConfig().getBoolean("integrations.coreprotect.enabled", false)) {
+            coreProtectIntegration.initialize();
+        }
+        
+        // LuckPerms Integration
+        luckPermsIntegration = new LuckPermsIntegration(this);
+        if (getConfig().getBoolean("integrations.luckperms.enabled", false)) {
+            luckPermsIntegration.initialize();
+            if (luckPermsIntegration.isEnabled()) {
+                getLogger().info("LuckPerms rate limiting enabled!");
+                getLogger().info("  Group-based backup quotas active");
+            }
+        }
+        
+        // PlaceholderAPI Integration
+        if (getConfig().getBoolean("integrations.placeholderapi.enabled", false)) {
+            if (getServer().getPluginManager().getPlugin("PlaceholderAPI") != null) {
+                placeholderExpansion = new ServerBackupExpansion(this);
+                if (placeholderExpansion.register()) {
+                    getLogger().info("PlaceholderAPI expansion registered!");
+                    getLogger().info("  Available placeholders: %serverbackup_*");
+                } else {
+                    getLogger().warning("Failed to register PlaceholderAPI expansion");
+                }
+            } else {
+                getLogger().warning("PlaceholderAPI not found! Expansion disabled.");
+            }
+        }
     }
     
     private void startAutoBackup() {
@@ -136,11 +189,21 @@ public class ServerBackupPlugin extends JavaPlugin {
         getLogger().info("  Events: " + (getConfig().getBoolean("features.events.enabled", true) ? "✓" : "✗"));
         getLogger().info("  HTTP API: " + (getConfig().getBoolean("features.http-api.enabled", false) ? "✓" : "✗"));
         getLogger().info("Integrations:");
-        getLogger().info("  CoreProtect: " + (getConfig().getBoolean("integrations.coreprotect.enabled", false) ? "✓" : "✗"));
+        String cpStatus = (coreProtectIntegration != null && coreProtectIntegration.isEnabled()) ? "✓ Active" : 
+                         getConfig().getBoolean("integrations.coreprotect.enabled", false) ? "✗ Failed" : "✗ Disabled";
+        getLogger().info("  CoreProtect: " + cpStatus);
         getLogger().info("  WorldGuard: " + (getConfig().getBoolean("integrations.worldguard.enabled", false) ? "✓" : "✗"));
         getLogger().info("  LuckPerms: " + (getConfig().getBoolean("integrations.luckperms.enabled", false) ? "✓" : "✗"));
         getLogger().info("  PlaceholderAPI: " + (getConfig().getBoolean("integrations.placeholderapi.enabled", false) ? "✓" : "✗"));
         getLogger().info("  Network Mode: " + (getConfig().getBoolean("integrations.network.enabled", false) ? "✓" : "✗"));
         getLogger().info("═══════════════════════════════════════════");
+    }
+    
+    public CoreProtectIntegration getCoreProtectIntegration() {
+        return coreProtectIntegration;
+    }
+    
+    public LuckPermsIntegration getLuckPermsIntegration() {
+        return luckPermsIntegration;
     }
 }
