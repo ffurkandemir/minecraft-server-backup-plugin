@@ -1,21 +1,27 @@
 package com.serverbackup;
 
+import com.serverbackup.api.BackupAPI;
 import com.serverbackup.commands.BackupCommand;
 import com.serverbackup.commands.BackupDeleteCommand;
 import com.serverbackup.commands.BackupListCommand;
 import com.serverbackup.commands.BackupRestoreCommand;
 import com.serverbackup.service.BackupService;
+import com.serverbackup.service.BackupAPIImpl;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.io.File;
 
 public class ServerBackupPlugin extends JavaPlugin {
     
+    private static ServerBackupPlugin instance;
     private BackupService backupService;
+    private BackupAPIImpl backupAPI;
     private int autoBackupTaskId = -1;
     
     @Override
     public void onEnable() {
+        instance = this;
+        
         // Save default config
         saveDefaultConfig();
         
@@ -29,6 +35,14 @@ public class ServerBackupPlugin extends JavaPlugin {
         // Initialize backup service
         backupService = new BackupService(this);
         
+        // Initialize public API (if enabled)
+        if (getConfig().getBoolean("features.public-api.enabled", true)) {
+            backupAPI = new BackupAPIImpl(this, backupService);
+            getLogger().info("Public API enabled - other plugins can use BackupAPI");
+        } else {
+            getLogger().info("Public API disabled");
+        }
+        
         // Register commands
         registerCommands();
         
@@ -38,6 +52,9 @@ public class ServerBackupPlugin extends JavaPlugin {
         } else {
             getLogger().info("Auto-backup is disabled. Use /backup command to create backups manually.");
         }
+        
+        // Log feature status
+        logFeatureStatus();
         
         getLogger().info("ServerBackupPlugin has been enabled!");
     }
@@ -92,5 +109,38 @@ public class ServerBackupPlugin extends JavaPlugin {
     
     public BackupService getBackupService() {
         return backupService;
+    }
+    
+    /**
+     * Get the public API instance
+     * @return BackupAPI or null if disabled in config
+     */
+    public static BackupAPI getAPI() {
+        return instance != null ? instance.backupAPI : null;
+    }
+    
+    /**
+     * Get plugin instance
+     */
+    public static ServerBackupPlugin getInstance() {
+        return instance;
+    }
+    
+    /**
+     * Log which features are enabled
+     */
+    private void logFeatureStatus() {
+        getLogger().info("═══════════════════════════════════════════");
+        getLogger().info("Feature Status:");
+        getLogger().info("  Public API: " + (getConfig().getBoolean("features.public-api.enabled", true) ? "✓" : "✗"));
+        getLogger().info("  Events: " + (getConfig().getBoolean("features.events.enabled", true) ? "✓" : "✗"));
+        getLogger().info("  HTTP API: " + (getConfig().getBoolean("features.http-api.enabled", false) ? "✓" : "✗"));
+        getLogger().info("Integrations:");
+        getLogger().info("  CoreProtect: " + (getConfig().getBoolean("integrations.coreprotect.enabled", false) ? "✓" : "✗"));
+        getLogger().info("  WorldGuard: " + (getConfig().getBoolean("integrations.worldguard.enabled", false) ? "✓" : "✗"));
+        getLogger().info("  LuckPerms: " + (getConfig().getBoolean("integrations.luckperms.enabled", false) ? "✓" : "✗"));
+        getLogger().info("  PlaceholderAPI: " + (getConfig().getBoolean("integrations.placeholderapi.enabled", false) ? "✓" : "✗"));
+        getLogger().info("  Network Mode: " + (getConfig().getBoolean("integrations.network.enabled", false) ? "✓" : "✗"));
+        getLogger().info("═══════════════════════════════════════════");
     }
 }

@@ -1,6 +1,10 @@
-# Server Backup Plugin Configuration
+# ═══════════════════════════════════════════════════════════════════
+#           ServerBackupPlugin Configuration v2.0
+# ═══════════════════════════════════════════════════════════════════
 
-# Backup settings
+# ═══════════════════════════════════════════════════════════════════
+#                    CORE BACKUP SETTINGS
+# ═══════════════════════════════════════════════════════════════════
 backup:
   # Directory where backups will be stored (relative to server root)
   directory: "backups"
@@ -31,6 +35,144 @@ backup:
   
   # Broadcast messages to all players
   broadcast-messages: true
+
+# ═══════════════════════════════════════════════════════════════════
+#                    FEATURE FLAGS
+# ═══════════════════════════════════════════════════════════════════
+features:
+  # Enable public API for other plugins
+  # When enabled, other plugins can use BackupAPI to create/manage backups
+  public-api:
+    enabled: true
+    
+  # Enable event system
+  # When enabled, fires Bukkit events (BackupStartEvent, BackupCompleteEvent, etc.)
+  # Disable this if you don't want other plugins listening to backup events
+  events:
+    enabled: true
+    fire-start-event: true
+    fire-complete-event: true
+    fire-fail-event: true
+    fire-delete-event: true
+    
+  # HTTP REST API for web panels (EXPERIMENTAL)
+  # Allows external tools to manage backups via HTTP endpoints
+  http-api:
+    enabled: false
+    port: 8080
+    host: "127.0.0.1"  # SECURITY: Use localhost only, or configure firewall!
+    auth:
+      enabled: true
+      token: "CHANGE_ME_RANDOM_TOKEN_HERE"  # IMPORTANT: Change this!
+    cors:
+      enabled: false
+      allowed-origins: ["http://localhost:3000"]
+      
+  # Region-based snapshots (requires WorldGuard)
+  region-snapshots:
+    enabled: false
+    default-format: "zip"  # zip or folder
+    
+  # Cloud sync integration
+  cloud-sync:
+    enabled: false
+    # Upload backups to cloud storage after creation
+    auto-upload: true
+    # Delete local backup after successful upload
+    delete-after-upload: false
+
+# ═══════════════════════════════════════════════════════════════════
+#                    PLUGIN INTEGRATIONS
+# ═══════════════════════════════════════════════════════════════════
+integrations:
+  # CoreProtect integration for smart rollbacks
+  coreprotect:
+    enabled: false
+    # If rollback affects more than this many blocks, suggest full restore
+    auto-restore-threshold: 10000
+    # Automatically create backup before large rollbacks
+    backup-before-rollback: true
+    
+  # WorldGuard integration for region snapshots
+  worldguard:
+    enabled: false
+    # Allow region-specific backups
+    region-backups: true
+    
+  # LuckPerms integration for advanced permissions
+  luckperms:
+    enabled: false
+    # Group-based rate limiting (backups per hour)
+    rate-limits:
+      admin: 0  # unlimited
+      mod: 5
+      default: 1
+      
+  # PlaceholderAPI integration
+  placeholderapi:
+    enabled: false
+    # Provides placeholders like %serverbackup_last_backup_time%
+    
+  # BungeeCord/Velocity network mode
+  network:
+    enabled: false
+    mode: "velocity"  # "bungee" or "velocity"
+    # Network backup coordinator
+    coordinator:
+      # Is this server the coordinator? (usually proxy)
+      is-coordinator: false
+      # Channel name for plugin messaging
+      channel: "serverbackup:network"
+      
+  # Discord webhooks for notifications
+  discord:
+    enabled: false
+    webhook-url: ""
+    notify-on-success: true
+    notify-on-failure: true
+    notify-on-start: false
+    
+  # Cloud storage providers
+  cloud-providers:
+    # Amazon S3 / Backblaze B2 / MinIO
+    s3:
+      enabled: false
+      endpoint: "s3.amazonaws.com"
+      region: "us-east-1"
+      bucket: "my-minecraft-backups"
+      access-key: ""
+      secret-key: ""
+      path-prefix: "server1/"
+      
+    # FTP/SFTP
+    ftp:
+      enabled: false
+      protocol: "sftp"  # ftp or sftp
+      host: "ftp.example.com"
+      port: 22
+      username: ""
+      password: ""
+      remote-path: "/backups"
+      
+    # Google Drive (requires OAuth setup)
+    google-drive:
+      enabled: false
+      credentials-file: "plugins/ServerBackupPlugin/google-credentials.json"
+      folder-id: ""
+
+# ═══════════════════════════════════════════════════════════════════
+#                    PERFORMANCE SETTINGS
+# ═══════════════════════════════════════════════════════════════════
+performance:
+  # Thread pool size for async operations
+  async-threads: 2
+  
+  # Chunk-based world saving (reduces lag)
+  chunk-based-save: true
+  chunks-per-tick: 20
+  
+  # Pause auto-save during backup (prevents corruption)
+  pause-auto-save: true
 
 # Messages
 messages:

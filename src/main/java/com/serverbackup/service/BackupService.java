@@ -282,4 +282,83 @@ public class BackupService {
     public BackupSessionManager getSessionManager() {
         return sessionManager;
     }
+    
+    /**
+     * Create backup synchronously (for API usage)
+     * This method should be called from async context!
+     * 
+     * @param options Backup options
+     * @return Backup file or null if failed
+     */
+    public File createBackupSync(com.serverbackup.api.BackupOptions options) throws Exception {
+        String timestamp = dateFormat.format(new Date());
+        String filename = options.getCustomName() != null ? 
+            options.getCustomName() + ".zip" : 
+            "backup-" + timestamp + ".zip";
+            
+        File backupDir = getBackupDirectory();
+        File backupFile = new File(backupDir, filename);
+        
+        String type = options.getType().getName();
+        
+        if (options.isCompression()) {
+            createZipBackupWithOptions(backupFile, options);
+        } else {
+            String folderName = options.getCustomName() != null ? 
+                options.getCustomName() : 
+                "backup-" + timestamp;
+            createFolderBackupWithOptions(new File(backupDir, folderName), options);
+        }
+        
+        return backupFile;
+    }
+    
+    private void createZipBackupWithOptions(File backupFile, com.serverbackup.api.BackupOptions options) throws IOException {
+        try (ZipOutputStream zos = new ZipOutputStream(new FileOutputStream(backupFile))) {
+            // Get worlds to backup
+            Set<String> worldNames = options.getWorldNames();
+            if (worldNames.isEmpty()) {
+                for (World world : plugin.getServer().getWorlds()) {
+                    worldNames.add(world.getName());
+                }
+            }
+            
+            // Backup each world
+            for (String worldName : worldNames) {
+                File worldFolder = new File(plugin.getServer().getWorldContainer(), worldName);
+                if (worldFolder.exists() && worldFolder.isDirectory()) {
+                    addFolderToZip(worldFolder, worldFolder.getName(), zos);
+                }
+            }
+            
+            // Include plugins if requested
+            if (options.includePlugins()) {
+                File pluginsFolder = plugin.getDataFolder().getParentFile();
+                addFolderToZip(pluginsFolder, "plugins", zos);
+            }
+        }
+    }
+    
+    private void createFolderBackupWithOptions(File backupFolder, com.serverbackup.api.BackupOptions options) throws IOException {
+        backupFolder.mkdirs();
+        
+        Set<String> worldNames = options.getWorldNames();
+        if (worldNames.isEmpty()) {
+            for (World world : plugin.getServer().getWorlds()) {
+                worldNames.add(world.getName());
+            }
+        }
+        
+        for (String worldName : worldNames) {
+            File worldFolder = new File(plugin.getServer().getWorldContainer(), worldName);
+            if (worldFolder.exists() && worldFolder.isDirectory()) {
+                copyFolder(worldFolder.toPath(), new File(backupFolder, worldName).toPath());
+            }
+        }
+        
+        if (options.includePlugins()) {
+            File pluginsFolder = plugin.getDataFolder().getParentFile();
+            copyFolder(pluginsFolder.toPath(), new File(backupFolder, "plugins").toPath());
+        }
+    }
 }
