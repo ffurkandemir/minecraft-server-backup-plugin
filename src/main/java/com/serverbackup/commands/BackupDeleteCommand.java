@@ -4,17 +4,12 @@ import com.serverbackup.ServerBackupPlugin;
 import com.serverbackup.service.BackupService;
 import org.bukkit.ChatColor;
 import org.bukkit.command.Command;
-import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 
-public class BackupDeleteCommand implements CommandExecutor {
-    
-    private final ServerBackupPlugin plugin;
-    private final BackupService backupService;
+public class BackupDeleteCommand extends BaseCommand {
     
     public BackupDeleteCommand(ServerBackupPlugin plugin, BackupService backupService) {
-        this.plugin = plugin;
-        this.backupService = backupService;
+        super(plugin, backupService);
     }
     
     @Override
@@ -25,11 +20,17 @@ public class BackupDeleteCommand implements CommandExecutor {
         }
         
         if (args.length == 0) {
-            sender.sendMessage(ChatColor.RED + "Usage: /backupdelete <backup-name>");
+            sendColoredMessage(sender, ChatColor.RED, "Usage: /backupdelete <backup-name>");
             return true;
         }
         
         String backupName = args[0];
+        
+        // Security: Validate backup name to prevent path traversal
+        if (!isValidBackupName(backupName)) {
+            sendColoredMessage(sender, ChatColor.RED, "Invalid backup name! Backup names must start with 'backup-' and contain no path separators.");
+            return true;
+        }
         
         if (backupService.deleteBackup(backupName)) {
             String message = getMessage("backup-deleted").replace("{filename}", backupName);
@@ -39,10 +40,5 @@ public class BackupDeleteCommand implements CommandExecutor {
         }
         
         return true;
-    }
-    
-    private String getMessage(String key) {
-        String message = plugin.getConfig().getString("messages." + key, key);
-        return ChatColor.translateAlternateColorCodes('&', message);
     }
 }

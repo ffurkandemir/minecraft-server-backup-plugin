@@ -1,6 +1,7 @@
 package com.serverbackup.service;
 
 import com.serverbackup.ServerBackupPlugin;
+import com.serverbackup.util.BackupSessionManager;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
 import org.bukkit.ChatColor;
@@ -16,9 +17,11 @@ public class BackupService {
     
     private final ServerBackupPlugin plugin;
     private final SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd_HH-mm-ss");
+    private final BackupSessionManager sessionManager;
     
     public BackupService(ServerBackupPlugin plugin) {
         this.plugin = plugin;
+        this.sessionManager = new BackupSessionManager();
     }
     
     public void createBackup(org.bukkit.command.CommandSender sender) {
@@ -27,9 +30,21 @@ public class BackupService {
     }
     
     public void createBackup(org.bukkit.command.CommandSender sender, String backupType) {
+        // Check if backup is already running
+        if (sessionManager.isBackupRunning()) {
+            if (sender != null) {
+                sender.sendMessage(ChatColor.RED + "A backup is already in progress! Please wait for it to complete.");
+            }
+            plugin.getLogger().warning("Backup request ignored - backup already in progress");
+            return;
+        }
+        
         plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () -> {
+            UUID sessionId = null;
             try {
                 String type = backupType.equalsIgnoreCase("full") ? "full" : "world";
+                sessionId = sessionManager.startSession(type);
+                
                 String startMsg = getMessage("backup-started").replace("{type}", type);
                 broadcast(startMsg, sender);
                 
@@ -60,11 +75,21 @@ public class BackupService {
                     .replace("{type}", type);
                 broadcast(message, sender);
                 
+                // Mark session as successful
+                if (sessionId != null) {
+                    sessionManager.endSession(sessionId, true);
+                }
+                
             } catch (Exception e) {
                 String message = getMessage("backup-failed").replace("{error}", e.getMessage());
                 broadcast(message, sender);
                 plugin.getLogger().severe("Backup failed: " + e.getMessage());
                 e.printStackTrace();
+                
+                // Mark session as failed
+                if (sessionId != null) {
+                    sessionManager.endSession(sessionId, false);
+                }
             }
         });
     }
@@ -248,5 +273,13 @@ public class BackupService {
         final String[] units = new String[] { "B", "KB", "MB", "GB", "TB" };
         int digitGroups = (int) (Math.log10(size) / Math.log10(1024));
         return String.format("%.1f %s", size / Math.pow(1024, digitGroups), units[digitGroups]);
+    }
+    
+    /**
+     * Get the session manager for tracking active backups
+     * @return BackupSessionManager instance
+     */
+    public BackupSessionManager getSessionManager() {
+        return sessionManager;
     }
 }

@@ -53,10 +53,18 @@ public class ServerBackupPlugin extends JavaPlugin {
     }
     
     private void registerCommands() {
+        BackupTabCompleter tabCompleter = new com.serverbackup.commands.BackupTabCompleter(backupService);
+        
         getCommand("backup").setExecutor(new BackupCommand(this, backupService));
+        getCommand("backup").setTabCompleter(tabCompleter);
+        
         getCommand("backuplist").setExecutor(new BackupListCommand(this, backupService));
+        
         getCommand("backuprestore").setExecutor(new BackupRestoreCommand(this, backupService));
+        getCommand("backuprestore").setTabCompleter(tabCompleter);
+        
         getCommand("backupdelete").setExecutor(new BackupDeleteCommand(this, backupService));
+        getCommand("backupdelete").setTabCompleter(tabCompleter);
     }
     
     private void startAutoBackup() {

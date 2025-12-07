@@ -4,17 +4,12 @@ import com.serverbackup.ServerBackupPlugin;
 import com.serverbackup.service.BackupService;
 import org.bukkit.ChatColor;
 import org.bukkit.command.Command;
-import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 
-public class BackupCommand implements CommandExecutor {
-    
-    private final ServerBackupPlugin plugin;
-    private final BackupService backupService;
+public class BackupCommand extends BaseCommand {
     
     public BackupCommand(ServerBackupPlugin plugin, BackupService backupService) {
-        this.plugin = plugin;
-        this.backupService = backupService;
+        super(plugin, backupService);
     }
     
     @Override
@@ -62,15 +57,10 @@ public class BackupCommand implements CommandExecutor {
             return true;
         }
         
-        sender.sendMessage(ChatColor.RED + "Usage: /backup [world|full|now|auto|cancel]");
-        sender.sendMessage(ChatColor.YELLOW + "  world - Backup worlds only (default)");
-        sender.sendMessage(ChatColor.YELLOW + "  full  - Backup worlds and plugins");
-        sender.sendMessage(ChatColor.YELLOW + "  auto  - Toggle automatic backups");
+        sendColoredMessage(sender, ChatColor.RED, "Usage: /backup [world|full|now|auto|cancel]");
+        sendColoredMessage(sender, ChatColor.YELLOW, "  world - Backup worlds only (default)");
+        sendColoredMessage(sender, ChatColor.YELLOW, "  full  - Backup worlds and plugins");
+        sendColoredMessage(sender, ChatColor.YELLOW, "  auto  - Toggle automatic backups");
         return true;
-    }
-    
-    private String getMessage(String key) {
-        String message = plugin.getConfig().getString("messages." + key, key);
-        return ChatColor.translateAlternateColorCodes('&', message);
     }
 }
