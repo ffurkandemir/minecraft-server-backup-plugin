@@ -122,12 +122,14 @@ public class CoreProtectIntegration {
         plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () -> {
             try {
                 // Get lookup data to estimate size
+                // CoreProtect API: performLookup(time, users, blocks, excludeBlocks, actions, excludeActions, radius, location)
                 List<String[]> lookupData = coreProtectAPI.performLookup(
                     time,
                     username != null ? List.of(username) : null,
                     null, // blocks
-                    null, // exclude
+                    null, // excludeBlocks
                     null, // actions
+                    null, // excludeActions
                     radius,
                     location
                 );
@@ -222,37 +224,28 @@ public class CoreProtectIntegration {
             
             // Perform actual rollback on main thread
             plugin.getServer().getScheduler().runTask(plugin, () -> {
-                boolean success = coreProtectAPI.performRollback(
+                // CoreProtect API performRollback returns void in API 22.2
+                coreProtectAPI.performRollback(
                     time,
                     username != null ? List.of(username) : null,
                     null, // blocks
-                    null, // exclude
+                    null, // excludeBlocks
                     null, // actions
+                    null, // excludeActions
                     radius,
                     location
                 );
                 
-                if (success) {
-                    sender.sendMessage("§a[SmartRollback] ✓ Rollback completed successfully!");
-                    sender.sendMessage("§7Safety backup: §e" + backupResult.getBackupFile().getName());
-                    
-                    future.complete(new RollbackResult(
-                        RollbackStrategy.BACKUP_THEN_ROLLBACK,
-                        blocks,
-                        blocks,
-                        "Success - backup: " + backupResult.getBackupFile().getName()
-                    ));
-                } else {
-                    sender.sendMessage("§c[SmartRollback] Rollback failed!");
-                    sender.sendMessage("§7But don't worry, backup is safe: §e" + backupResult.getBackupFile().getName());
-                    
-                    future.complete(new RollbackResult(
-                        RollbackStrategy.ROLLBACK_FAILED,
-                        blocks,
-                        0,
-                        "Rollback failed but backup exists: " + backupResult.getBackupFile().getName()
-                    ));
-                }
+                // Assume success if no exception thrown
+                sender.sendMessage("§a[SmartRollback] ✓ Rollback completed successfully!");
+                sender.sendMessage("§7Safety backup: §e" + backupResult.getBackupFile().getName());
+                
+                future.complete(new RollbackResult(
+                    RollbackStrategy.BACKUP_THEN_ROLLBACK,
+                    blocks,
+                    blocks,
+                    "Success - backup: " + backupResult.getBackupFile().getName()
+                ));
             });
         });
     }
@@ -268,9 +261,11 @@ public class CoreProtectIntegration {
         
         // Perform rollback on main thread
         plugin.getServer().getScheduler().runTask(plugin, () -> {
-            boolean success = coreProtectAPI.performRollback(
+            // CoreProtect API performRollback returns void in API 22.2
+            coreProtectAPI.performRollback(
                 time,
                 username != null ? List.of(username) : null,
+                null,
                 null,
                 null,
                 null,
@@ -278,23 +273,14 @@ public class CoreProtectIntegration {
                 location
             );
             
-            if (success) {
-                sender.sendMessage("§a[SmartRollback] ✓ Rollback completed!");
-                future.complete(new RollbackResult(
-                    RollbackStrategy.DIRECT_ROLLBACK,
-                    blocks,
-                    blocks,
-                    "Success"
-                ));
-            } else {
-                sender.sendMessage("§c[SmartRollback] Rollback failed!");
-                future.complete(new RollbackResult(
-                    RollbackStrategy.ROLLBACK_FAILED,
-                    blocks,
-                    0,
-                    "CoreProtect rollback returned false"
-                ));
-            }
+            // Assume success if no exception thrown
+            sender.sendMessage("§a[SmartRollback] ✓ Rollback completed!");
+            future.complete(new RollbackResult(
+                RollbackStrategy.DIRECT_ROLLBACK,
+                blocks,
+                blocks,
+                "Success"
+            ));
         });
     }
     

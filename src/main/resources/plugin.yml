@@ -18,6 +18,11 @@ commands:
     usage: /backuplist
     permission: serverbackup.list
     aliases: [listbackups, bl]
+  backupsize:
+    description: Show backup statistics and disk usage
+    usage: /backupsize
+    permission: serverbackup.list
+    aliases: [bsize, backupstats]
   backuprestore:
     description: Restore from a backup
     usage: /backuprestore <backup-name>

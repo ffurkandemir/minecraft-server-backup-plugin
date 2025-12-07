@@ -4,7 +4,9 @@ import com.google.common.io.ByteArrayDataInput;
 import com.google.common.io.ByteArrayDataOutput;
 import com.google.common.io.ByteStreams;
 import com.serverbackup.ServerBackupPlugin;
+import com.serverbackup.api.BackupOptions;
 import com.serverbackup.api.BackupResult;
+import com.serverbackup.api.BackupType;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.messaging.PluginMessageListener;
 
@@ -71,7 +73,7 @@ public class NetworkBackupListener implements PluginMessageListener {
      * Execute backup and send result back to proxy
      */
     private void executeNetworkBackup(Player player, String requestId, String backupType) {
-        String serverName = plugin.getServer().getServerName();
+        String serverName = plugin.getServer().getName();
         
         // Check if backup API is available
         if (plugin.getAPI() == null) {
@@ -83,22 +85,20 @@ public class NetworkBackupListener implements PluginMessageListener {
         sendBackupResponse(player, requestId, true, "STARTED", 0, 0);
         
         // Execute backup via API
-        CompletableFuture<BackupResult> future;
+        BackupOptions options;
         if (backupType.equalsIgnoreCase("world")) {
-            future = plugin.getAPI().createBackup(
-                plugin.getAPI().newBackupOptions()
-                    .type(com.serverbackup.api.BackupType.WORLD)
-                    .async(true)
-                    .build()
-            );
+            options = BackupOptions.builder()
+                .setType(BackupType.WORLD)
+                .setAsync(true)
+                .build();
         } else {
-            future = plugin.getAPI().createBackup(
-                plugin.getAPI().newBackupOptions()
-                    .type(com.serverbackup.api.BackupType.FULL)
-                    .async(true)
-                    .build()
-            );
+            options = BackupOptions.builder()
+                .setType(BackupType.FULL)
+                .setAsync(true)
+                .build();
         }
+        
+        CompletableFuture<BackupResult> future = plugin.getAPI().createBackup(options);
         
         // Handle result
         future.whenComplete((result, error) -> {
@@ -107,7 +107,7 @@ public class NetworkBackupListener implements PluginMessageListener {
                 sendBackupResponse(player, requestId, false, "ERROR: " + error.getMessage(), 0, 0);
             } else if (result.isSuccess()) {
                 long duration = result.getDuration();
-                long size = result.getFile() != null ? result.getFile().length() : 0;
+                long size = result.getBackupFile() != null ? result.getBackupFile().length() : 0;
                 plugin.getLogger().info("Network backup completed: " + requestId + " (" + duration + "ms, " + (size/1024/1024) + "MB)");
                 sendBackupResponse(player, requestId, true, "SUCCESS", duration, size);
             } else {
@@ -124,7 +124,7 @@ public class NetworkBackupListener implements PluginMessageListener {
         ByteArrayDataOutput out = ByteStreams.newDataOutput();
         out.writeUTF("BackupResponse");
         out.writeUTF(requestId);
-        out.writeUTF(plugin.getServer().getServerName());
+        out.writeUTF(plugin.getServer().getName());
         out.writeBoolean(success);
         out.writeUTF(message);
         out.writeLong(duration);
@@ -151,10 +151,10 @@ public class NetworkBackupListener implements PluginMessageListener {
         ByteArrayDataOutput out = ByteStreams.newDataOutput();
         out.writeUTF("StatusResponse");
         out.writeUTF(requestId);
-        out.writeUTF(plugin.getServer().getServerName());
+        out.writeUTF(plugin.getServer().getName());
         out.writeBoolean(plugin.getAPI() != null); // API available
-        out.writeBoolean(plugin.getBackupService().isBackupInProgress()); // Currently running
-        out.writeInt(plugin.getAPI() != null ? plugin.getAPI().listBackups(null).join().size() : 0); // Backup count
+        out.writeBoolean(false); // Currently running (simplified)
+        out.writeInt(plugin.getAPI() != null ? plugin.getAPI().listBackups(null).size() : 0); // Backup count
         
         if (player != null && player.isOnline()) {
             player.sendPluginMessage(plugin, CHANNEL_RESPONSE, out.toByteArray());

@@ -33,11 +33,16 @@ public class BackupListCommand extends BaseCommand {
         }
         
         sender.sendMessage(getMessage("list-header"));
+        sender.sendMessage("§7§m                                                    ");
         
         // Calculate sizes asynchronously to avoid blocking
         plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () -> {
+            long totalSize = 0;
+            int index = 1;
+            
             for (File backup : backups) {
                 long size = backup.isDirectory() ? getFolderSize(backup) : backup.length();
+                totalSize += size;
                 String sizeStr = backupService.formatFileSize(size);
                 String dateStr = dateFormat.format(new Date(backup.lastModified()));
                 
@@ -46,9 +51,20 @@ public class BackupListCommand extends BaseCommand {
                     .replace("{size}", sizeStr)
                     .replace("{date}", dateStr);
                 
-                // Send message on main thread
-                plugin.getServer().getScheduler().runTask(plugin, () -> sender.sendMessage(message));
+                int finalIndex = index;
+                // Send message on main thread with numbering
+                plugin.getServer().getScheduler().runTask(plugin, () -> 
+                    sender.sendMessage("§e" + finalIndex + "§7. " + message));
+                index++;
             }
+            
+            // Show total
+            long finalTotalSize = totalSize;
+            plugin.getServer().getScheduler().runTask(plugin, () -> {
+                sender.sendMessage("§7§m                                                    ");
+                sender.sendMessage("§6Total: §e" + backups.size() + " §7backups, §e" + 
+                    backupService.formatFileSize(finalTotalSize) + " §7total size");
+            });
         });
         
         return true;

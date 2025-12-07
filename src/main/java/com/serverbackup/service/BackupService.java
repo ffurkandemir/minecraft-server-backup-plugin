@@ -39,21 +39,25 @@ public class BackupService {
             return;
         }
         
-        plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () -> {
-            UUID sessionId = null;
-            try {
-                String type = backupType.equalsIgnoreCase("full") ? "full" : "world";
-                sessionId = sessionManager.startSession(type);
-                
-                String startMsg = getMessage("backup-started").replace("{type}", type);
-                broadcast(startMsg, sender);
-                
-                // Save all worlds
-                for (World world : plugin.getServer().getWorlds()) {
-                    world.save();
-                }
-                
-                // Create backup
+        // Prepare worlds on main thread
+        plugin.getServer().getScheduler().runTask(plugin, () -> {
+            // Disable auto-save and save all worlds
+            for (World world : plugin.getServer().getWorlds()) {
+                world.setAutoSave(false);
+                world.save();
+            }
+            
+            // Then do backup on async thread
+            plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () -> {
+                UUID sessionId = null;
+                try {
+                    String type = backupType.equalsIgnoreCase("full") ? "full" : "world";
+                    sessionId = sessionManager.startSession(type);
+                    
+                    String startMsg = getMessage("backup-started").replace("{type}", type);
+                    broadcast(startMsg, sender);
+                    
+                    // Create backup
                 String timestamp = dateFormat.format(new Date());
                 String filename = "backup-" + timestamp + ".zip";
                 File backupDir = getBackupDirectory();
@@ -70,27 +74,35 @@ public class BackupService {
                 // Clean old backups
                 cleanOldBackups();
                 
-                String message = getMessage("backup-completed")
-                    .replace("{filename}", filename)
-                    .replace("{type}", type);
-                broadcast(message, sender);
-                
-                // Mark session as successful
-                if (sessionId != null) {
-                    sessionManager.endSession(sessionId, true);
+                    String message = getMessage("backup-completed")
+                        .replace("{filename}", filename)
+                        .replace("{type}", type);
+                    broadcast(message, sender);
+                    
+                    // Mark session as successful
+                    if (sessionId != null) {
+                        sessionManager.endSession(sessionId, true);
+                    }
+                    
+                } catch (Exception e) {
+                    String message = getMessage("backup-failed").replace("{error}", e.getMessage());
+                    broadcast(message, sender);
+                    plugin.getLogger().severe("Backup failed: " + e.getMessage());
+                    e.printStackTrace();
+                    
+                    // Mark session as failed
+                    if (sessionId != null) {
+                        sessionManager.endSession(sessionId, false);
+                    }
+                } finally {
+                    // Re-enable auto-save on main thread
+                    plugin.getServer().getScheduler().runTask(plugin, () -> {
+                        for (World world : plugin.getServer().getWorlds()) {
+                            world.setAutoSave(true);
+                        }
+                    });
                 }
-                
-            } catch (Exception e) {
-                String message = getMessage("backup-failed").replace("{error}", e.getMessage());
-                broadcast(message, sender);
-                plugin.getLogger().severe("Backup failed: " + e.getMessage());
-                e.printStackTrace();
-                
-                // Mark session as failed
-                if (sessionId != null) {
-                    sessionManager.endSession(sessionId, false);
-                }
-            }
+            });
         });
     }
     
@@ -141,6 +153,13 @@ public class BackupService {
                     }
                     
                     zos.closeEntry();
+                } catch (IOException e) {
+                    // Skip locked files (e.g., session.lock, level.dat_old)
+                    if (e.getMessage() != null && e.getMessage().contains("locked")) {
+                        plugin.getLogger().warning("Skipping locked file: " + file.getName());
+                        continue;
+                    }
+                    throw e;
                 }
             }
         }
@@ -242,7 +261,7 @@ public class BackupService {
         }
     }
     
-    private File getBackupDirectory() {
+    public File getBackupDirectory() {
         String backupPath = plugin.getConfig().getString("backup.directory", "backups");
         File backupDir = new File(plugin.getServer().getWorldContainer(), backupPath);
         if (!backupDir.exists()) {

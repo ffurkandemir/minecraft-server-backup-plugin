@@ -87,11 +87,59 @@ public class BackupCommand extends BaseCommand {
             return true;
         }
         
-        sendColoredMessage(sender, ChatColor.RED, "Usage: /backup [world|full|now|auto|cancel]");
-        sendColoredMessage(sender, ChatColor.YELLOW, "  world - Backup worlds only (default)");
-        sendColoredMessage(sender, ChatColor.YELLOW, "  full  - Backup worlds and plugins");
-        sendColoredMessage(sender, ChatColor.YELLOW, "  auto  - Toggle automatic backups");
+        // Info command - show plugin status
+        if (args[0].equalsIgnoreCase("info") || args[0].equalsIgnoreCase("status")) {
+            showPluginInfo(sender);
+            return true;
+        }
+        
+        sendColoredMessage(sender, ChatColor.RED, "Usage: /backup [world|full|now|auto|info]");
+        sendColoredMessage(sender, ChatColor.YELLOW, "  world  - Backup worlds only (default)");
+        sendColoredMessage(sender, ChatColor.YELLOW, "  full   - Backup worlds and plugins");
+        sendColoredMessage(sender, ChatColor.YELLOW, "  auto   - Toggle automatic backups");
+        sendColoredMessage(sender, ChatColor.YELLOW, "  info   - Show plugin status & info");
         return true;
+    }
+    
+    private void showPluginInfo(CommandSender sender) {
+        sender.sendMessage(ChatColor.GOLD + "╔═══════════════════════════════════════╗");
+        sender.sendMessage(ChatColor.GOLD + "║   " + ChatColor.YELLOW + "ServerBackup Plugin v" + plugin.getDescription().getVersion() + ChatColor.GOLD + "   ║");
+        sender.sendMessage(ChatColor.GOLD + "╚═══════════════════════════════════════╝");
+        sender.sendMessage("");
+        
+        boolean autoBackup = plugin.getConfig().getBoolean("backup.auto-backup-enabled");
+        sender.sendMessage(ChatColor.AQUA + "Auto-backup: " + (autoBackup ? ChatColor.GREEN + "✓ Enabled" : ChatColor.RED + "✗ Disabled"));
+        
+        if (autoBackup) {
+            int interval = plugin.getConfig().getInt("backup.auto-backup-interval", 720);
+            sender.sendMessage(ChatColor.GRAY + "  Interval: " + interval + " minutes");
+        }
+        
+        int maxBackups = plugin.getConfig().getInt("backup.max-backups", 10);
+        sender.sendMessage(ChatColor.AQUA + "Max backups: " + ChatColor.WHITE + maxBackups);
+        
+        boolean compress = plugin.getConfig().getBoolean("backup.compress", true);
+        sender.sendMessage(ChatColor.AQUA + "Compression: " + (compress ? ChatColor.GREEN + "✓ Enabled" : ChatColor.YELLOW + "✗ Disabled"));
+        
+        sender.sendMessage("");
+        sender.sendMessage(ChatColor.GOLD + "Integrations:");
+        sender.sendMessage(getIntegrationStatus("CoreProtect", plugin.getCoreProtectIntegration()));
+        sender.sendMessage(getIntegrationStatus("LuckPerms", plugin.getLuckPermsIntegration()));
+        
+        boolean papi = plugin.getConfig().getBoolean("integrations.placeholderapi.enabled", false);
+        sender.sendMessage(ChatColor.GRAY + "  PlaceholderAPI: " + (papi ? ChatColor.GREEN + "✓ Active" : ChatColor.RED + "✗ Disabled"));
+    }
+    
+    private String getIntegrationStatus(String name, Object integration) {
+        if (integration == null) {
+            return ChatColor.GRAY + "  " + name + ": " + ChatColor.RED + "✗ Not available";
+        }
+        try {
+            boolean enabled = (boolean) integration.getClass().getMethod("isEnabled").invoke(integration);
+            return ChatColor.GRAY + "  " + name + ": " + (enabled ? ChatColor.GREEN + "✓ Active" : ChatColor.YELLOW + "○ Disabled");
+        } catch (Exception e) {
+            return ChatColor.GRAY + "  " + name + ": " + ChatColor.RED + "✗ Error";
+        }
     }
     
     /**

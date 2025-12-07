@@ -29,7 +29,11 @@ public class BackupTabCompleter implements TabCompleter {
         
         if (command.getName().equalsIgnoreCase("backup")) {
             if (args.length == 1) {
-                completions = Arrays.asList("world", "full", "now", "auto", "cancel");
+                completions = Arrays.asList("world", "full", "now", "auto", "info", "status");
+            }
+        } else if (command.getName().equalsIgnoreCase("backuplist")) {
+            if (args.length == 1) {
+                completions = Arrays.asList("all", "recent");
             }
         } else if (command.getName().equalsIgnoreCase("backuprestore") || 
                    command.getName().equalsIgnoreCase("backupdelete")) {

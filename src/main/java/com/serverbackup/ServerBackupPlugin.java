@@ -5,6 +5,8 @@ import com.serverbackup.commands.BackupCommand;
 import com.serverbackup.commands.BackupDeleteCommand;
 import com.serverbackup.commands.BackupListCommand;
 import com.serverbackup.commands.BackupRestoreCommand;
+import com.serverbackup.commands.BackupSizeCommand;
+import com.serverbackup.commands.BackupTabCompleter;
 import com.serverbackup.integrations.coreprotect.CoreProtectIntegration;
 import com.serverbackup.integrations.coreprotect.SmartRollbackCommand;
 import com.serverbackup.integrations.luckperms.LuckPermsIntegration;
@@ -98,6 +100,8 @@ public class ServerBackupPlugin extends JavaPlugin {
         getCommand("backup").setTabCompleter(tabCompleter);
         
         getCommand("backuplist").setExecutor(new BackupListCommand(this, backupService));
+        
+        getCommand("backupsize").setExecutor(new BackupSizeCommand(this, backupService));
         
         getCommand("backuprestore").setExecutor(new BackupRestoreCommand(this, backupService));
         getCommand("backuprestore").setTabCompleter(tabCompleter);
