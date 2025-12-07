@@ -1,0 +1,46 @@
+# Server Backup Plugin Configuration
+
+# Backup settings
+backup:
+  # Directory where backups will be stored (relative to server root)
+  directory: "backups"
+  
+  # Enable automatic backups (disabled by default, operator must use /backup command)
+  auto-backup-enabled: false
+  
+  # Automatic backup interval in minutes (default: 720 = 12 hours, twice daily)
+  auto-backup-interval: 720
+  
+  # Default backup type: 'world' (worlds only) or 'full' (worlds + plugins)
+  default-backup-type: "world"
+  
+  # Maximum number of backups to keep (0 = unlimited)
+  max-backups: 10
+  
+  # Compress backups (zip format)
+  compress: true
+  
+  # Worlds to backup (leave empty to backup all worlds)
+  worlds:
+    - "world"
+    - "world_nether"
+    - "world_the_end"
+  
+  # Include plugins folder in backup
+  include-plugins: false
+  
+  # Broadcast messages to all players
+  broadcast-messages: true
+
+# Messages
+messages:
+  backup-started: "&aBackup started... Type: {type}"
+  backup-completed: "&aBackup completed successfully! File: {filename} Type: {type}"
+  backup-failed: "&cBackup failed: {error}"
+  backup-deleted: "&aBackup deleted: {filename}"
+  backup-restored: "&aBackup restored: {filename}"
+  no-permission: "&cYou don't have permission to use this command."
+  invalid-backup: "&cInvalid backup name."
+  list-header: "&a=== Server Backups ==="
+  list-entry: "&7- &e{filename} &7({size}, {date})"
+  no-backups: "&7No backups found."

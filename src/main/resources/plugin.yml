@@ -1,0 +1,50 @@
+name: ServerBackupPlugin
+version: '1.0.0'
+main: com.serverbackup.ServerBackupPlugin
+api-version: '1.21'
+author: YourName
+description: A plugin to create backups of your Minecraft server
+website: https://github.com/yourusername/server-backup-plugin
+
+commands:
+  backup:
+    description: Create a backup of the server
+    usage: /backup [now|auto|cancel]
+    permission: serverbackup.backup
+    aliases: [sb, backupnow]
+  backuplist:
+    description: List all available backups
+    usage: /backuplist
+    permission: serverbackup.list
+    aliases: [listbackups, bl]
+  backuprestore:
+    description: Restore from a backup
+    usage: /backuprestore <backup-name>
+    permission: serverbackup.restore
+    aliases: [restore]
+  backupdelete:
+    description: Delete a specific backup
+    usage: /backupdelete <backup-name>
+    permission: serverbackup.delete
+    aliases: [deletebackup]
+
+permissions:
+  serverbackup.*:
+    description: Gives access to all ServerBackup commands
+    children:
+      serverbackup.backup: true
+      serverbackup.list: true
+      serverbackup.restore: true
+      serverbackup.delete: true
+  serverbackup.backup:
+    description: Allows creating backups
+    default: op
+  serverbackup.list:
+    description: Allows listing backups
+    default: op
+  serverbackup.restore:
+    description: Allows restoring from backups
+    default: op
+  serverbackup.delete:
+    description: Allows deleting backups
+    default: op
